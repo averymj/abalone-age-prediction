@@ -3,3 +3,56 @@ title: "01-eda"
 output: html_document
 ---
 
+### Load Libraries
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+### Load Data
+```{r}
+abalone <- read_csv("../data/raw/abalone.csv")
+```
+
+**NOTE**: I decided to rename the columns in the data for consistency and ease of use.
+
+### Checking and Tidying the Data
+```{r}
+abalone <- abalone %>% clean_names()
+dim(abalone)
+glimpse(abalone)
+colSums(is.na(abalone))
+head(abalone)
+summary(abalone)
+```
+
+### Investigating Height == 0
+```{r}
+abalone %>% filter(height == 0)
+```
+
+Could the 0 be a measurement or recording error? Both are infant abalone, but is it possible for an abalone to have 0 inches of height?
+
+### Investigating Height > 0.3
+```{r}
+abalone %>% filter(height > 0.3)
+```
+
+**Height = 1.13:** So looking at the length, diameter and whole weight measurements being modest around 0.35 to 0.6, height being bigger than all three seems biologically impossible. The shell height should typically be smaller than what the length and diameter are. This suggests that a decimal was misplaced when recording the height of this abalone, and it possibly should be 0.113. 
+
+**Height = 0.515**: This could likely be a case where the abalone is abnormally large. Length and diameter seem large in proportion around the 0.56 and 0.7 range. Whole weight is also quite large at 2.21. 
+
+### Ratio
+```{r}
+abalone %>%
+  mutate(height_diameter_ratio = height / diameter) %>%
+  pull(height_diameter_ratio) %>%
+  summary()
+```
+
+**Height = 0.515**: Ratio is around 0.91, which is about 2.7 times the mean of the height diameter ratio. While it's high, it doesn't seem impossible for an abalone to be of this height based on its adjacent physical measurements. This happens to be a thick-shelled, hefty abalone. 
+
+**Height = 1.13:**: Ratio is around 3.18, which coincidentally, that is approximately the same value as the max height diameter ratio. 
+
+### Handling Height Outliers
+I began by removing the two rows with height == 0, as from a biological standpoint, this doesn't seem possible. I also decided to remove the row where height == 1.13, because our height-diameter ratio shows that it's an extreme outlier that could likely be due to a recording error. The typical ratio is around 0.3414, while the ratio for this abalone is around 3.18. Since we have over 4000 rows of data, removing these three will not have a major impact on our analysis. I will keep the row with height == 0.515 and flag it in case it creates concerns in the analysis.
