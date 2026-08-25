@@ -9,6 +9,7 @@ library(tidyverse)
 library(janitor)
 library(ggplot2)
 library(ggthemes)
+library(ggcorrplot)
 ```
 
 ### Load Data
@@ -161,3 +162,29 @@ abalone_clean %>%
 ```
 
 Male (M) abalones have the highest distribution in this sample at a value of 1528, making up about 36.6% of the entire sample size. Infant (I) abalones are the second highest distribution at a value of 1340 (around 32.1% of the sample), and female (F) abalones make up the smallest distribution in the sample at a value of 1306 (31.3% of the sample). Since all three classes roughly make up about a third of the sample each, this is not a severe class imbalance situation. Something that is worth considering is that Infant (I) is technically a life stage rather than a biological sex like M/F. This distinction is worth acknowledging when encoding `sex` for modeling. Since I doesn't sit on the same conceptual axis as M or F, its coefficient in a linear model would essentially capture age ('youth') as much as it would capture 'sex', which needs to be addressed when interpreting model estimates.
+
+## Section 3: Correlation 
+
+### Numeric
+```{r}
+abalone_clean %>%
+  select(length, diameter, height, whole_weight, shucked_weight, viscera_weight, shell_weight, rings) %>%
+  cor()
+```
+
+Nearly every single one of the numeric predictors have high correlation with one another, with `length` and `diameter` being the highest at 0.9868. Across the whole dataset, we have a strong multicollinearity problem. The variable that is the most correlated with `rings` is `shell_weight` (0.628). Notably, the predictor-to-predictor correlations are all considerably stronger than each predictor's correlation to `rings`, even with `shell_weight`'s correlation with `rings` being below the average correlation (around 0.85) seen among the predictors themselves. What this signals about the data and the multicollinearity observed is that physical size cannot fully determine the age of an abalone. Two abalone of similar size could be of different ages depending on other factors, such as growth rate, environment or genetics. These confounding variables are not determined in the dataset. If a linear regression model is built on this data, coefficient estimates could be unstable or hard to interpret. Methods like Lasso or Ridge could be a potential approach to take given this context, as it will help stabilize coefficients in the presence of multicollinearity, with Lasso specifically able to shrink estimates to zero and eliminate less useful variables.
+
+### Heatmap
+```{r}
+cor_matrix <- abalone_clean %>%
+  select(length, diameter, height, whole_weight, shucked_weight, viscera_weight, shell_weight, rings) %>%
+  cor()
+
+ggcorrplot(cor_matrix, lab = TRUE, type = "lower") +
+  labs(title = "Correlation Matrix of Abalone Measurements",
+       x = "Variable 1",
+       y = "Variable 2") +
+  theme_minimal()
+```
+
+**Note the deeper red predictor-to-predictor blocks versus the lighter rings column**
