@@ -14,11 +14,15 @@ library(janitor)
 abalone <- read_csv("../data/raw/abalone.csv")
 ```
 
-**NOTE**: I decided to rename the columns in the data for consistency and ease of use.
+**NOTE**: Length, diameter, and height are measured in millimeters; whole weight, shucked weight, viscera weight, and shell weight are measured in grams.
 
-### Checking and Tidying the Data
+### Tidying Column Names
 ```{r}
 abalone <- abalone %>% clean_names()
+```
+
+### Checking Data Structure
+```{r}
 dim(abalone)
 glimpse(abalone)
 colSums(is.na(abalone))
@@ -31,7 +35,7 @@ summary(abalone)
 abalone %>% filter(height == 0)
 ```
 
-Could the 0 be a measurement or recording error? Both are infant abalone, but is it possible for an abalone to have 0 inches of height?
+Could the 0 be a measurement or recording error? Both are infant abalone, but is it possible for an abalone to have 0 millimeters (mm) of height?
 
 ### Investigating Height > 0.3
 ```{r}
@@ -56,3 +60,11 @@ abalone %>%
 
 ### Handling Height Outliers
 I began by removing the two rows with height == 0, as from a biological standpoint, this doesn't seem possible. I also decided to remove the row where height == 1.13, because our height-diameter ratio shows that it's an extreme outlier that could likely be due to a recording error. The typical ratio is around 0.3414, while the ratio for this abalone is around 3.18. Since we have over 4000 rows of data, removing these three will not have a major impact on our analysis. I will keep the row with height == 0.515 and flag it in case it creates concerns in the analysis.
+
+### Removing Height Outliers
+```{r}
+abalone_clean <- abalone %>%
+  filter(height != 0 & height != 1.13)
+
+dim(abalone_clean)
+```
