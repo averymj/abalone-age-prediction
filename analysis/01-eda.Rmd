@@ -7,6 +7,8 @@ output: html_document
 ```{r}
 library(tidyverse)
 library(janitor)
+library(ggplot2)
+library(ggthemes)
 ```
 
 ### Load Data
@@ -15,6 +17,8 @@ abalone <- read_csv("../data/raw/abalone.csv")
 ```
 
 **NOTE**: Length, diameter, and height are measured in millimeters; whole weight, shucked weight, viscera weight, and shell weight are measured in grams.
+
+## Section 1: Cleaning the Data
 
 ### Tidying Column Names
 ```{r}
@@ -68,3 +72,92 @@ abalone_clean <- abalone %>%
 
 dim(abalone_clean)
 ```
+
+## Section 2: Distributions
+
+### Rings
+```{r}
+ggplot(abalone_clean, aes(x = rings)) +
+  geom_histogram(binwidth = 1) +
+  labs(title = "Distribution of Rings Among Abalones", x = "Number of Rings", y = "Count") +
+  theme_minimal()
+```
+
+### Length
+```{r}
+ggplot(abalone_clean, aes(x = length)) +
+  geom_histogram(binwidth = .05) +
+  labs(title = "Distribution of Length Among Abalones", x = "Length (mm)", y = "Count") +
+  theme_minimal()
+```
+
+While `Rings` showed a moderate right-skewed distribution, `Length` shows a left-skew distribution, gradually rising from 0.1 to about 0.6, then dropping sharply on the right side. This may reflect that most of the sampled abalone in this dataset were mature adults, and very few of them were young or small individuals.
+
+### Diameter
+```{r}
+ggplot(abalone_clean, aes(x = diameter)) +
+  geom_histogram(binwidth = .02) +
+  labs(title = "Distribution of Diameter Among Abalones", x = "Diameter (mm)", y = "Count") +
+  theme_minimal()
+```
+
+`Diameter` also has a left-skewed distribution, rising gradually and peaking at approximately 0.48 mm and dropping sharply off on the right side. Given the fact that `Length` and `Diameter` share a nearly identical distribution, this signals that these variables are highly correlated and may introduce issues of multicollinearity when modeling. Biologically, it makes sense that they would be correlated, as these measurements capture the overall shell size from different axes, and as abalones grow, their shell tends to scale proportionally in all directions rather than expanding in only one dimension. This shared pattern of growth is likely the main factor of the strong correlation between the two variables.
+
+### Height
+```{r}
+ggplot(abalone_clean, aes(x = height)) +
+  geom_histogram(binwidth = .01) +
+  labs(title = "Distribution of Height Among Abalones", x = "Height (mm)", y = "Count") +
+  theme_minimal()
+```
+
+The outlier that was mentioned earlier, with the abalone that had a height of 0.515 mm, is seen on the far right side of the graph.
+
+```{r}
+#Same graph without outlier
+abalone_clean %>% filter(height < 0.3) %>%
+  ggplot(aes(x = height)) + 
+  geom_histogram(binwidth = 0.01) + 
+  labs(title = "Distribution of Height Among Abalones (Excluding Outlier)", x = "Height (mm)", y = "Count") +
+  theme_minimal()
+```
+
+If we take out the outlier for a moment, we can see that the distribution of `Height` is roughly symmetric. It peaks around the 0.15 mm range and gradually falls after the peak to about the 0.25 mm range. This distribution ranges from 0.01 to 0.25 mm. The retained outlier sits well outside this range, which could disproportionately inflate the mean and possibly affect a fitted regression line, pulling it outside the range of the bulk of the values. This will be assessed in the model diagnostics phase once a baseline model is fit and leverage and influential statistics are examined. 
+
+### Weight Variables
+```{r}
+abalone_long <- abalone_clean %>%
+  select(whole_weight, shucked_weight, viscera_weight, shell_weight) %>%
+  pivot_longer(cols = everything(), names_to = "measurement", values_to = "value")
+
+ggplot(abalone_long, aes(x = value)) +
+  geom_histogram(binwidth = 0.05) +
+  facet_wrap(~ measurement, scales = "free") +
+  labs(
+    title = "Distribution of Weight Measurements Among Abalones",
+    x = "Weight (g)",
+    y = "Count"
+  ) +
+  theme_minimal()
+```
+
+All four weight variables share a similar right-skew distribution. They seem to peak early, roughly between 0.15 to 0.3 grams for `shell_weight`, `shucked_weight` and `viscera_weight`, and they also have a long gradual tail stretching to the right. Because `whole_weight` encompasses a much larger range, its peak is slightly larger around 0.8 to 1.0 grams, but it still shares the same shape as the other weight variables. In a biological sense, weight is usually not symmetric in shape. An abalone cannot weigh less than 0 grams, so there is a sharp zero-bound on the left side of the data distribution. (Note: I double-checked all the weight variables to ensure that there was no abalone in the data that had a weight of 0 grams, as the graphs looked slightly misleading on that account) Most of the population weighs a small amount, and a small number of heavy abalone pull the tail of the distribution towards the right. Our target variable `Rings` also had a right-skewed distribution, which could imply that weight variables may have a more naturally linear relationship with rings than `length` / `diameter` / `height` do. This is only a hypothesis right now and will be checked in the model diagnostics phase.
+
+### Sex (Categorical Factor)
+```{r}
+ggplot(abalone_clean, aes(x = sex)) +
+  geom_bar() +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.75) +
+  labs(title = "Distribution of Sex Among Abalones", x = "Sex", y = "Count") +
+  theme_minimal()
+```
+
+### Sex Percentages
+```{r}
+abalone_clean %>%
+  count(sex) %>%
+  mutate(percentage = round(n / sum(n) * 100, 1)) %>%
+  knitr::kable(col.names = c("Sex", "Count", "Percentage (%)"))
+```
+
+Male (M) abalones have the highest distribution in this sample at a value of 1528, making up about 36.6% of the entire sample size. Infant (I) abalones are the second highest distribution at a value of 1340 (around 32.1% of the sample), and female (F) abalones make up the smallest distribution in the sample at a value of 1306 (31.3% of the sample). Since all three classes roughly make up about a third of the sample each, this is not a severe class imbalance situation. Something that is worth considering is that Infant (I) is technically a life stage rather than a biological sex like M/F. This distinction is worth acknowledging when encoding `sex` for modeling. Since I doesn't sit on the same conceptual axis as M or F, its coefficient in a linear model would essentially capture age ('youth') as much as it would capture 'sex', which needs to be addressed when interpreting model estimates.
