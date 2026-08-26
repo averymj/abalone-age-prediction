@@ -188,3 +188,105 @@ ggcorrplot(cor_matrix, lab = TRUE, type = "lower") +
 ```
 
 **Note the deeper red predictor-to-predictor blocks versus the lighter rings column**
+
+## Section 4: Scatterplots (Numeric Predictors vs Rings) 
+
+### Shell Weight
+```{r}
+ggplot(abalone_clean, aes(x = shell_weight, y = rings)) + 
+  geom_point(alpha = 0.1) +
+  labs(
+    title = "Number of Rings by Shell Weight in Abalones",
+    x = "Shell Weight (g)",
+    y = "Number of Rings"
+  ) +
+  theme_minimal()
+```
+
+There is a clear positive trend between `shell_weight` and `rings`, but it appears to be slightly curved rather than linear. `Rings` rises steeply along with `shell_weight` at first, but then the relationship flattens out beyond `shell_weight` = 0.4 to 0.45. The correlation between these two variables was 0.628, so a positive trend on the plot was expected. This curved, flattening pattern likely explains why the correlation came out moderate rather than high — Pearson correlation only measures the strength of a linear relationship, so it understates a real but non-linear association like this one.
+
+The points become more widespread at this range as well; variance appears to increase as `shell_weight` increases. This may pose a problem when it comes to fitting a regression model, as linear regression assumes constant (not increasing) variance. Based on this first plot, we could be motivated to log transform either `rings` or `shell_weight` (or both). 
+
+### Height
+```{r}
+ggplot(abalone_clean, aes(x = height, y = rings)) + 
+  geom_point(alpha = 0.1) +
+  labs(
+    title = "Number of Rings by Height in Abalones",
+    x = "Height (mm)",
+    y = "Number of Rings"
+  ) +
+  theme_minimal()
+```
+
+The outlier observed earlier in the analysis can be detected on this plot, but it appears to be an unremarkable point as it has 10 rings, sitting right in the middle range of `rings`. Rather than being labeled as an outlier, this observation is a high leverage point, because it has a fairly normal y-value but an extreme x-value, sitting outside far from the main data cluster. What is interesting about this plot is that `height` has a relationship to `rings` that is opposite to the relationship that was first observed with `shell_weight` and `rings`. Rather than curving and flattening as `height` increases, it seems to steepen upwards around the 0.15 to 0.2 mm range. Variance in `rings` apears to increase as well as `height` increases, so again, this could raise a potential concern with heteroscedasticity as model and residual diagnostics are evaluated. 
+
+### Length
+```{r}
+ggplot(abalone_clean, aes(x = length, y = rings)) + 
+  geom_point(alpha = 0.1) +
+  labs(
+    title = "Number of Rings by Length in Abalones",
+    x = "Length (mm)",
+    y = "Number of Rings"
+  ) +
+  theme_minimal()
+```
+
+As `length` increases, `rings` increases as well, which was expected given their correlation of 0.556. The relationship shows a similar curved, flattening shape with increasing spread at higher values, consistent with the patterns already observed in `shell_weight` and `height`. This pattern is likely a reflection of `length`'s strong correlation with those variables.
+
+### Diameter
+```{r}
+ggplot(abalone_clean, aes(x = diameter, y = rings)) + 
+  geom_point(alpha = 0.1) +
+  labs(
+    title = "Number of Rings by Diameter in Abalones",
+    x = "Diameter (mm)",
+    y = "Number of Rings"
+  ) +
+  theme_minimal()
+```
+
+`Diameter`'s relationship to `rings` is nearly identical to `length`'s relationship to `rings`. The pattern and spread is highly similar, and this is not a shocking revelation given the fact that `length` and `diameter` are highly correlated with one another (r = 0.987). 
+
+### Shucked Weight
+```{r}
+ggplot(abalone_clean, aes(x = shucked_weight, y = rings)) +
+  geom_point(alpha = 0.1) +
+  labs(
+    title = "Number of Rings by Shucked Weight in Abalones",
+    x = "Shucked Weight (g)",
+    y = "Number of Rings"
+  ) +
+  theme_minimal()
+
+abalone_clean %>% filter(shucked_weight > 1.0) %>% nrow()
+```
+
+As `shucked_weight` increases, variance of `rings` increases, similar to what was seen in other weight and size variables. However, with this specific relationship, there appears to be a decline at the higher range of `shucked_weight`, and the points look more sparse. The amount of abalone with a `shucked_weight` greater than 1.0 grams is 42, as confirmed with the code above. Given the fact that we have 4,174 total observations in our clean data, this is about 1% of the whole dataset. This decline is more plausibly attributed to sparse data at the high end, rather than a genuine biological phenomenon where older abalone (with more rings) would have lower shucked weight. All in all, `shucked_weight` has a genuine but noisy relationship with `rings` due to being the weakest correlated predictor (r = 0.42).
+
+### Whole Weight
+```{r}
+ggplot(abalone_clean, aes(x = whole_weight, y = rings)) +
+  geom_point(alpha = 0.1) +
+  labs(
+    title = "Number of Rings by Whole Weight in Abalones",
+    x = "Weight (g)",
+    y = "Number of Rings"
+  ) +
+  theme_minimal()
+```
+
+### Viscera Weight
+```{r}
+ggplot(abalone_clean, aes(x = viscera_weight, y = rings)) +
+  geom_point(alpha = 0.1) +
+  labs(
+    title = "Number of Rings by Viscera Weight in Abalones",
+    x = "Viscera Weight (g)",
+    y = "Number of Rings"
+  ) +
+  theme_minimal()
+```
+
+Both `whole_weight` and `viscera_weight` show a similar pattern on their plots. They have a positive trend with `rings`, and it's not a perfectly linear relationship as it slightly curves then flattens. As both `whole_weight` and `viscera_weight` increase, variance in `rings` also increase. All of these findings are consistent with what was observed comparing `rings` and `shell_weight`, but it differs from the apparent decline observed with `shucked_weight`. The fact that neither `whole_weight` nor `viscera_weight` show an apparent decline on their plots further suggests that `shucked_weight`'s decline was due to the sparseness of data points in the higher range of `shucked_weight` rather than a real biological effect.
