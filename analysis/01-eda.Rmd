@@ -189,7 +189,7 @@ ggcorrplot(cor_matrix, lab = TRUE, type = "lower") +
 
 **Note the deeper red predictor-to-predictor blocks versus the lighter rings column**
 
-## Section 4: Scatterplots (Numeric Predictors vs Rings) 
+## Section 4: Bivariate Distributions
 
 ### Shell Weight
 ```{r}
@@ -203,7 +203,7 @@ ggplot(abalone_clean, aes(x = shell_weight, y = rings)) +
   theme_minimal()
 ```
 
-There is a clear positive trend between `shell_weight` and `rings`, but it appears to be slightly curved rather than linear. `Rings` rises steeply along with `shell_weight` at first, but then the relationship flattens out beyond `shell_weight` = 0.4 to 0.45. The correlation between these two variables was 0.628, so a positive trend on the plot was expected. This curved, flattening pattern likely explains why the correlation came out moderate rather than high — Pearson correlation only measures the strength of a linear relationship, so it understates a real but non-linear association like this one.
+There is a clear positive trend between `shell_weight` and `rings`, but it appears to be slightly curved rather than linear. `Rings` rises steeply along with `shell_weight` at first, but then the relationship flattens out beyond `shell_weight` = 0.4 to 0.45. The correlation between these two variables was 0.628, so a positive trend on the plot was expected. This curved, flattening pattern likely explains why the correlation came out moderate rather than high — Pearson correlation only measures the strength of a linear relationship, so it understates a real but non-linear association like this one./
 
 The points become more widespread at this range as well; variance appears to increase as `shell_weight` increases. This may pose a problem when it comes to fitting a regression model, as linear regression assumes constant (not increasing) variance. Based on this first plot, we could be motivated to log transform either `rings` or `shell_weight` (or both). 
 
@@ -290,3 +290,25 @@ ggplot(abalone_clean, aes(x = viscera_weight, y = rings)) +
 ```
 
 Both `whole_weight` and `viscera_weight` show a similar pattern on their plots. They have a positive trend with `rings`, and it's not a perfectly linear relationship as it slightly curves then flattens. As both `whole_weight` and `viscera_weight` increase, variance in `rings` also increase. All of these findings are consistent with what was observed comparing `rings` and `shell_weight`, but it differs from the apparent decline observed with `shucked_weight`. The fact that neither `whole_weight` nor `viscera_weight` show an apparent decline on their plots further suggests that `shucked_weight`'s decline was due to the sparseness of data points in the higher range of `shucked_weight` rather than a real biological effect.
+
+### Sex
+```{r}
+ggplot(abalone_clean, aes(x = sex, y = rings)) +
+  geom_boxplot() +
+  labs(
+    title = "Number of Rings by Sex of Abalones",
+    x = "Sex",
+    y = "Number of Rings"
+  ) +
+  theme_minimal()
+```
+
+Infant (I) seems to have a lower median number of rings than male and female abalones (both sitting at a median of 10 rings). The box for Infant (I) sits lower on the y-axis compared to the other two groups. The M and F groups are also noticeably similar to one another, sharing a median value of 10 and IQR based on the size of their boxes. This could signal that biological sex past the infant stage is not strongly related to ring count. Something that is interesting to note is that the male and female groups have outliers stretching towards 25 to 29 rings. The infant abalone group also has some apparent outliers past 20 rings, despite it representing the youngest life stage of abalones. This raises the question of whether the I group in sex strictly represents infant abalone. This is not a question the dataset alone can answer, but it's worth noting when using sex as a predictor variable in a model.
+
+### Bivariate Distributions Conclusion
+
+This dataset contains predictor variables that are highly correlated with one another, presenting an issue of multicollinearity when building out a model. While the predictors are correlated with each other, they show moderate correlation to the target response variable (`rings`). Through the scatterplots, we've gathered that the relationships between `rings` and many of the predictors are non-linear and that `rings` increases in variance as many of the predictors increase in value. 
+
+With our only categorical variable `sex`, it likely doesn't seem to be a strong predictor of `age` based on similarities between male and female abalone in terms of median and IQR. Infant (I) does, however, differ from male (M) and female (F) abalone, as it seems to have a lower median number of rings and a lower IQR. This is consistent with what we'd expect biologically - infants, being the youngest life stage, having a comparatively lower distribution of rings (and therefore age). 
+
+Given the severe multicollinearity between predictor variables and the heteroscedasticity problem found in many of the scatterplots, a linear regression model may produce unstable, hard-to-interpret coefficients. Regularized regression approaches like Lasso and Ridge are natural candidates to address the multicollinearity directly, and the non-linear, heteroscedastic patterns observed also motivate testing non-parametric models such as a random forest, as it doesn't assume linearity and handles correlated predictors more efficiently.
