@@ -1,0 +1,51 @@
+---
+title: "02-preprocessing"
+output: html_document
+---
+
+### Load Libraries
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+### Load Data
+```{r}
+abalone <- read_csv("../data/raw/abalone.csv")
+```
+
+### Tidying Column Names
+```{r}
+abalone <- abalone %>% clean_names()
+```
+
+### Removing Height Outliers
+```{r}
+abalone_clean <- abalone %>%
+  filter(height != 0 & height != 1.13)
+
+dim(abalone_clean)
+```
+
+Before encoding the Sex variable, I had to make a decision on which variable would be the reference. I decided to use F (Female) as the reference, because based on the EDA, there were not significant differences between female and male abalones and the median number of rings each group had. The infant (I) group, on the other hand, had a noticeably lower median number of rings. By using one of the adult abalone categories as the reference for `sex`, the coefficient for the I group will capture that meaningful contrast found in the EDA. 
+
+### Encoding Sex
+```{r}
+abalone_model_data <- abalone_clean %>%
+  mutate(
+    sex_I = ifelse(sex == "I", 1, 0),
+    sex_M = ifelse(sex == "M", 1, 0)
+  ) %>%
+  select(-sex)
+```
+
+### Spot Checks
+```{r}
+dim(abalone_model_data)
+glimpse(abalone_model_data)
+head(abalone_clean) # New data matches with original data
+```
+
+### Handling Multicollinearity
+
+When it comes to the approach I plan to take with modeling and handling the correlated predictors, I made the decision to keep all predictors intact and use penalized regression methods like Ridge or Lasso to determine which variables are the most useful rather than manually dropping variables. First, it keeps all the information that this data provides available, and no variable that could potentially be useful is discarded before modeling even begins. Furthermore, this approach will make the model comparison step cleaner, because the same feature set will be used across all the models that will be built. The results themselves will exemplify why penalized regression outperformed plain OLS when in the presence of collinearity. I also considered using PCA in this project once I realized how correlated the predictors were, but ultimately, I decided against it. PCA would sacrifice the interpretability of individual physical measurements, which is a central goal to this project. However, this is a technique that I hope to explore in a future project.
